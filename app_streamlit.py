@@ -388,37 +388,28 @@ for idx, cat_key in enumerate(cat_keys):
         if cat["data"]:
             st.markdown("**Atletas ingresados:**")
             
-            for i, row in enumerate(cat["data"]):
-                col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
+            # Crear tabla con DataFrame editable
+            df_temp = pd.DataFrame(cat["data"])
+            
+            if not df_temp.empty:
+                edited_df = st.data_editor(
+                    df_temp,
+                    use_container_width=True,
+                    hide_index=True,
+                    key=f"editor_{cat_key}"
+                )
                 
-                with col1:
-                    row["name"] = st.text_input(
-                        "Nombre",
-                        value=row["name"],
-                        key=f"name_{cat_key}_{i}",
-                        label_visibility="collapsed"
-                    )
-                
-                with col2:
-                    row["club"] = st.text_input(
-                        "Club",
-                        value=row["club"],
-                        key=f"club_{cat_key}_{i}",
-                        label_visibility="collapsed"
-                    )
-                
-                with col3:
-                    row["time_text"] = st.text_input(
-                        "Tiempo",
-                        value=row["time_text"],
-                        key=f"time_{cat_key}_{i}",
-                        label_visibility="collapsed"
-                    )
-                
-                with col4:
-                    if st.button("🗑️", key=f"del_{cat_key}_{i}", help="Eliminar"):
-                        cat["data"].pop(i)
-                        st.rerun()
+                # Actualizar datos desde el editor
+                for i, row in edited_df.iterrows():
+                    if i < len(cat["data"]):
+                        cat["data"][i]["name"] = row["name"]
+                        cat["data"][i]["club"] = row["club"]
+                        cat["data"][i]["time_text"] = row["time_text"]
+            
+            # Botón para eliminar todas las filas
+            if st.button("🗑️ Limpiar tabla", key=f"clear_{cat_key}"):
+                cat["data"] = []
+                st.rerun()
         
         st.divider()
         
