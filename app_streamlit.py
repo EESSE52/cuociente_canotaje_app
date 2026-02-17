@@ -17,6 +17,52 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# ========================
+# AUTENTICACIÓN
+# ========================
+
+CONTRASEÑA_CORRECTA = "canotaje2026"  # ⚠️ CAMBIAR ESTO POR TU CONTRASEÑA
+
+def verificar_autenticacion():
+    """Verifica si el usuario está autenticado"""
+    if "autenticado" not in st.session_state:
+        st.session_state.autenticado = False
+    return st.session_state.autenticado
+
+def mostrar_login():
+    """Muestra la página de login"""
+    st.set_page_config(page_title="Login - Canotaje", page_icon="🔐")
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.markdown("<br><br><br>", unsafe_allow_html=True)
+        st.markdown("# 🚣 Cálculo de Posiciones Canotaje")
+        st.markdown("## Acceso Restringido")
+        
+        st.markdown("---")
+        
+        contraseña = st.text_input(
+            "Ingresa la contraseña para acceder:",
+            type="password",
+            placeholder="Contraseña"
+        )
+        
+        if st.button("🔓 Acceder", use_container_width=True):
+            if contraseña == CONTRASEÑA_CORRECTA:
+                st.session_state.autenticado = True
+                st.success("✓ ¡Acceso concedido!")
+                st.rerun()
+            else:
+                st.error("❌ Contraseña incorrecta")
+        
+        st.markdown("---")
+        st.info("💡 Contacta al administrador si olvidaste la contraseña")
+
+if not verificar_autenticacion():
+    mostrar_login()
+    st.stop()
+
 # CSS personalizado para mejorar la apariencia
 st.markdown("""
 <style>
@@ -585,8 +631,20 @@ with tabs[4]:
 # ========================
 
 st.divider()
-st.markdown("""
-<div style="text-align: center; color: #666; font-size: 0.9em;">
-    <p>Cálculo de Posiciones Canotaje | Selecciona atletas automáticamente según el corte de porcentaje</p>
-</div>
-""", unsafe_allow_html=True)
+
+col1, col2, col3 = st.columns([1, 1, 1])
+
+with col1:
+    st.markdown("""
+    <div style="text-align: center; color: #666; font-size: 0.9em;">
+        <p>Cálculo de Posiciones Canotaje</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.markdown("")
+
+with col3:
+    if st.button("🔒 Cerrar Sesión", key="logout"):
+        st.session_state.autenticado = False
+        st.rerun()
