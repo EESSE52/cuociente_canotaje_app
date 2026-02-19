@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql://user:password@localhost:5432/club_management"
     
-    # Security
-    SECRET_KEY: str = "your-secret-key-change-this-in-production"
+    # Security - CHANGE THESE IN PRODUCTION!
+    SECRET_KEY: str = "CHANGE-THIS-IN-PRODUCTION-USE-openssl-rand-base64-32"  # MUST be changed!
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7

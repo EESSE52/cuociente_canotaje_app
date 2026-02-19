@@ -8,7 +8,7 @@ from typing import List, Optional
 from datetime import date
 
 from app.db.database import get_db
-from app.models.models import Member, User, UserRole, MemberStatus
+from app.models.models import Member, User, UserRole, MemberStatus, FeeStatus, PaymentStatus
 from app.schemas.schemas import (
     MemberCreate, MemberUpdate, MemberResponse
 )
@@ -203,12 +203,12 @@ async def get_member_account_status(
     # Calculate account status
     pending_fees = db.query(GeneratedFee).filter(
         GeneratedFee.member_id == member_id,
-        GeneratedFee.status.in_(["pending", "overdue"])
+        GeneratedFee.status.in_([FeeStatus.PENDING, FeeStatus.OVERDUE])
     ).all()
     
     pending_special_fees = db.query(SpecialFee).filter(
         SpecialFee.member_id == member_id,
-        SpecialFee.status.in_(["pending", "overdue"])
+        SpecialFee.status.in_([FeeStatus.PENDING, FeeStatus.OVERDUE])
     ).all()
     
     total_pending = sum(f.final_amount - f.paid_amount for f in pending_fees)
@@ -216,7 +216,7 @@ async def get_member_account_status(
     
     recent_payments = db.query(Payment).filter(
         Payment.member_id == member_id,
-        Payment.status == "approved"
+        Payment.status == PaymentStatus.APPROVED
     ).order_by(Payment.payment_date.desc()).limit(10).all()
     
     return {
@@ -224,7 +224,7 @@ async def get_member_account_status(
         "total_pending": float(total_pending),
         "pending_fees_count": len(pending_fees) + len(pending_special_fees),
         "recent_payments_count": len(recent_payments),
-        "account_status": "current" if total_pending == 0 else "overdue" if any(f.status == "overdue" for f in pending_fees + pending_special_fees) else "pending"
+        "account_status": "current" if total_pending == 0 else "overdue" if any(f.status == FeeStatus.OVERDUE for f in pending_fees + pending_special_fees) else "pending"
     }
 
 

@@ -88,7 +88,7 @@ backend/
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Python 3.9+
+- Python 3.11+
 - PostgreSQL 12+
 - pip or poetry
 

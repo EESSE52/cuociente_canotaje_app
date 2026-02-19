@@ -11,7 +11,7 @@ from decimal import Decimal
 from app.db.database import get_db
 from app.models.models import (
     Payment, User, UserRole, PaymentStatus, GeneratedFee, 
-    SpecialFee, Commission, Club, PaymentFee, PaymentSpecialFee
+    SpecialFee, Commission, Club, PaymentFee, PaymentSpecialFee, FeeStatus
 )
 from app.schemas.schemas import PaymentCreate, PaymentUpdate, PaymentResponse
 from app.core.security import get_current_user, verify_club_access, RoleChecker
@@ -69,9 +69,9 @@ def distribute_payment_to_fees(db: Session, payment: Payment, fee_ids: List[int]
         # Update fee
         fee.paid_amount += amount_to_apply
         if fee.paid_amount >= fee.final_amount:
-            fee.status = "paid"
+            fee.status = FeeStatus.PAID
         else:
-            fee.status = "partially_paid"
+            fee.status = FeeStatus.PARTIALLY_PAID
         
         # Create payment-fee association
         payment_fee = PaymentFee(
@@ -99,9 +99,9 @@ def distribute_payment_to_fees(db: Session, payment: Payment, fee_ids: List[int]
         # Update fee
         fee.paid_amount += amount_to_apply
         if fee.paid_amount >= fee.amount:
-            fee.status = "paid"
+            fee.status = FeeStatus.PAID
         else:
-            fee.status = "partially_paid"
+            fee.status = FeeStatus.PARTIALLY_PAID
         
         # Create payment-special_fee association
         payment_special_fee = PaymentSpecialFee(
@@ -322,9 +322,9 @@ async def cancel_payment(
             if fee:
                 fee.paid_amount -= pf.amount_applied
                 if fee.paid_amount <= 0:
-                    fee.status = "pending"
+                    fee.status = FeeStatus.PENDING
                 else:
-                    fee.status = "partially_paid"
+                    fee.status = FeeStatus.PARTIALLY_PAID
         
         payment_special_fees = db.query(PaymentSpecialFee).filter(PaymentSpecialFee.payment_id == payment.id).all()
         for psf in payment_special_fees:
@@ -332,9 +332,9 @@ async def cancel_payment(
             if fee:
                 fee.paid_amount -= psf.amount_applied
                 if fee.paid_amount <= 0:
-                    fee.status = "pending"
+                    fee.status = FeeStatus.PENDING
                 else:
-                    fee.status = "partially_paid"
+                    fee.status = FeeStatus.PARTIALLY_PAID
     
     # Update payment status
     payment.status = PaymentStatus.CANCELLED

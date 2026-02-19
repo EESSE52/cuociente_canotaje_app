@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.db.database import get_db
-from app.models.models import Club, User, UserRole, ClubStatus
+from app.models.models import Club, User, UserRole, ClubStatus, Member, GeneratedFee, Payment, MemberStatus, FeeStatus, PaymentStatus
 from app.schemas.schemas import (
     ClubCreate, ClubUpdate, ClubResponse, PaginationParams
 )
@@ -156,8 +156,6 @@ async def get_club_stats(
     """
     Get club statistics
     """
-    from app.models.models import Member, GeneratedFee, Payment
-    
     club = db.query(Club).filter(Club.id == club_id).first()
     
     if not club:
@@ -177,17 +175,17 @@ async def get_club_stats(
     total_members = db.query(Member).filter(Member.club_id == club_id).count()
     active_members = db.query(Member).filter(
         Member.club_id == club_id,
-        Member.status == "active"
+        Member.status == MemberStatus.ACTIVE
     ).count()
     
     pending_fees = db.query(GeneratedFee).filter(
         GeneratedFee.club_id == club_id,
-        GeneratedFee.status == "pending"
+        GeneratedFee.status == FeeStatus.PENDING
     ).count()
     
     total_payments = db.query(Payment).filter(
         Payment.club_id == club_id,
-        Payment.status == "approved"
+        Payment.status == PaymentStatus.APPROVED
     ).count()
     
     return {

@@ -6,15 +6,15 @@ services:
     image: postgres:15-alpine
     container_name: club_db
     environment:
-      POSTGRES_USER: club_admin
-      POSTGRES_PASSWORD: strongpassword
-      POSTGRES_DB: club_management
+      POSTGRES_USER: ${POSTGRES_USER:-club_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_THIS_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-club_management}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U club_admin"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-club_admin}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,11 +36,11 @@ services:
     build: .
     container_name: club_backend
     environment:
-      DATABASE_URL: postgresql://club_admin:strongpassword@db:5432/club_management
-      REDIS_URL: redis://redis:6379/0
-      SECRET_KEY: change-this-to-a-strong-secret-key-in-production-min-32-characters
-      DEBUG: "False"
-      CORS_ORIGINS: '["http://localhost:3000","http://localhost:8000"]'
+      DATABASE_URL: ${DATABASE_URL:-postgresql://club_admin:CHANGE_THIS_PASSWORD@db:5432/club_management}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      SECRET_KEY: ${SECRET_KEY:-CHANGE-THIS-GENERATE-WITH-openssl-rand-base64-32}
+      DEBUG: ${DEBUG:-False}
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000","http://localhost:8000"]}
     ports:
       - "8000:8000"
     depends_on:
