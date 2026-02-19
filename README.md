@@ -1,211 +1,242 @@
-# 🚣 Cálculo de Posiciones Canotaje - Versión Web
+# 🏢 Club Management SaaS Platform
 
-Aplicación web para calcular rankings de atletas de canotaje respecto a un tiempo testigo con selección automática.
+**Multi-tenant SaaS platform for sports club management** with membership fees, automatic commission tracking, and club communications.
 
-Convertida de aplicación de escritorio (PySide6) a aplicación web con **Streamlit**.
+## 🎯 Overview
 
----
+This platform transforms sports club management by providing:
+- **Multi-tenant architecture**: Each club gets isolated data space
+- **Automated fee collection**: Recurring and special fees with automatic generation
+- **Commission tracking**: Platform automatically calculates and tracks commissions on every payment
+- **Role-based access**: SuperAdmin, Club Admin, Treasurer, Board, and Member roles
+- **Club communications**: Events and news management
 
-## ✨ Características
+## 🏗️ Business Model
 
-- ✅ 4 categorías de canotaje (K1 M 1000, C1 M 1000, K1 F 500, C1 F 200)
-- ✅ Cálculo automático de % vs tiempo testigo
-- ✅ Selección automática según corte de porcentaje
-- ✅ Importar/exportar CSV y Excel
-- ✅ Ranking global filtrable por disciplina y sexo
-- ✅ Estadísticas en tiempo real
-- ✅ Interfaz web moderna y responsiva
+1. **Platform Provider** (SuperAdmin) registers clubs
+2. Each **Club** receives credentials and isolated workspace
+3. **Members** pay fees through the platform
+4. **Platform automatically collects commission** on each payment (configurable %)
+5. Complete transparency with commission tracking
 
----
+## 📁 Project Structure
 
-## 🚀 Ejecución Local
+```
+cuociente_canotaje_app/
+├── backend/                # FastAPI backend (NEW)
+│   ├── app/
+│   │   ├── api/           # API endpoints
+│   │   ├── core/          # Config & security
+│   │   ├── models/        # Database models
+│   │   ├── schemas/       # Pydantic schemas
+│   │   └── main.py        # FastAPI app
+│   ├── scripts/           # Utility scripts
+│   ├── Dockerfile         # Docker setup
+│   ├── docker-compose.yml # Docker Compose
+│   └── README.md          # Backend docs
+├── frontend/              # React frontend (TODO)
+│   └── src/
+├── app_streamlit.py       # Legacy Streamlit app
+├── ARCHITECTURE.md        # System architecture
+└── README.md              # This file
+```
 
-### Requisitos
-- Python 3.8+
-- pip
+## ✨ Features
 
-### Instalación
+### Implemented (Phase 1)
+- ✅ **Multi-tenant architecture** with club_id isolation
+- ✅ **Database schema** with 12+ tables (PostgreSQL)
+- ✅ **JWT authentication** with role-based access control
+- ✅ **User management** with 5 role levels
+- ✅ **Club CRUD** (SuperAdmin only)
+- ✅ **Members, Fees, Payments** data models
+- ✅ **Automatic commission calculation**
+- ✅ **Events and news** management
+- ✅ **Audit logging** for security
+- ✅ **API documentation** (Swagger/ReDoc)
+- ✅ **Docker deployment** setup
+
+### Coming Soon (Phases 2-7)
+- 🔄 Complete API endpoints for all entities
+- 🔄 Payment processing workflow
+- 🔄 Automatic fee generation (scheduler)
+- 🔄 Frontend panels (SuperAdmin, Treasurer, Member)
+- 🔄 Email notifications
+- 🔄 Payment gateway integration
+- 🔄 Advanced reporting
+
+## 🚀 Quick Start
+
+### Backend API
 
 ```bash
-# 1. Ir al directorio del proyecto
-cd "/home/eesse/Documentos/CALCULO POSICIONES CUOCIENTE"
+cd backend
 
-# 2. Crear entorno virtual (opcional pero recomendado)
+# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# 3. Instalar dependencias
+# Install dependencies
 pip install -r requirements.txt
+
+# Setup environment
+cp .env.example .env
+# Edit .env with your database credentials
+
+# Initialize database
+python scripts/init_db.py
+
+# Run server
+cd app
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Ejecutar la aplicación
+Access API docs: http://localhost:8000/api/docs
+
+### Docker Deployment
 
 ```bash
-streamlit run app_streamlit.py
+cd backend
+docker-compose up -d
 ```
 
-La aplicación se abrirá en el navegador en `http://localhost:8501`
+This starts:
+- PostgreSQL database (port 5432)
+- Redis cache (port 6379)
+- FastAPI backend (port 8000)
 
----
+### Default Credentials
 
-## 🌐 Desplegar en Streamlit Cloud (GRATIS)
+After running `init_db.py`:
 
-### Opción 1: Con GitHub (Recomendado)
+1. **SuperAdmin**: `admin@clubmanagement.com` / `admin123`
+2. **Club Admin**: `admin@demosportsclub.com` / `club123`
+3. **Treasurer**: `treasurer@demosportsclub.com` / `treasurer123`
 
-#### Paso 1: Crear repositorio en GitHub
+⚠️ **Change these passwords in production!**
+
+## 🛠️ Tech Stack
+
+### Backend
+- **Framework**: FastAPI 0.109+
+- **Database**: PostgreSQL 15+ with SQLAlchemy ORM
+- **Authentication**: JWT (python-jose)
+- **Security**: bcrypt password hashing
+- **Validation**: Pydantic
+- **Migrations**: Alembic
+- **Scheduler**: APScheduler
+- **Cache**: Redis
+
+### Frontend (Planned)
+- **Framework**: React 18+
+- **State**: Redux Toolkit
+- **UI**: Material-UI / Tailwind CSS
+- **API Client**: Axios
+- **PWA**: Progressive Web App support
+
+## 📊 Database Schema
+
+### Core Entities
+1. **Clubs**: Tenant table with commission settings
+2. **Users**: System users with roles (SuperAdmin, Admin, Treasurer, Board, Member)
+3. **Members**: Club members who pay fees
+4. **Recurring Fee Plans**: Templates for monthly/quarterly fees
+5. **Generated Fees**: Actual fee instances per member
+6. **Special Fees**: One-time fees (events, donations, etc.)
+7. **Payments**: Payment transactions (supports partial payments)
+8. **Commissions**: Auto-generated platform commission records
+9. **Events**: Club events with attendance tracking
+10. **Club News**: Announcements with publishing
+11. **Audit Logs**: Security and compliance tracking
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed schema.
+
+## 🔒 Security
+
+- ✅ JWT authentication with refresh tokens
+- ✅ Bcrypt password hashing (12 rounds)
+- ✅ Multi-tenant data isolation
+- ✅ Role-based access control (RBAC)
+- ✅ Rate limiting (60 req/min)
+- ✅ Audit logging
+- ✅ CORS configuration
+- ✅ SQL injection prevention (ORM)
+
+## 📚 Documentation
+
+- **[ARCHITECTURE.md](ARCHITECTURE.md)**: Complete system architecture and database design
+- **[backend/README.md](backend/README.md)**: Backend API documentation
+- **API Docs**: http://localhost:8000/api/docs (when running)
+
+## 🧪 Testing
 
 ```bash
-# Inicializar git (si no lo está)
-git init
-
-# Agregar archivos
-git add .
-git commit -m "Initial commit: Streamlit app"
-
-# Crear repositorio en github.com y sube los cambios
-git remote add origin https://github.com/TU_USUARIO/nombre-repo.git
-git branch -M main
-git push -u origin main
+cd backend
+pytest
+pytest --cov=app tests/
 ```
 
-#### Paso 2: Desplegar en Streamlit Cloud
+## 🤝 Contributing
 
-1. Ve a [https://streamlit.io/cloud](https://streamlit.io/cloud)
-2. Haz clic en **"Sign in with GitHub"**
-3. Conecta tu cuenta de GitHub
-4. Haz clic en **"New app"**
-5. Selecciona:
-   - **Repository**: el repositorio que creaste
-   - **Branch**: `main`
-   - **Main file path**: `app_streamlit.py`
-6. Haz clic en **"Deploy"**
+1. Fork the repository
+2. Create feature branch
+3. Commit changes
+4. Push to branch
+5. Open Pull Request
 
-¡Tu aplicación estará disponible en una URL pública como: `https://nombre-app.streamlit.app`
+## 📝 MVP Phases
 
-### Opción 2: Con Alternativos (Heroku, Railway, Render)
+### Phase 1: Foundation ✅ (Current)
+- Database schema and models
+- Authentication system
+- Multi-tenant architecture
+- Basic API endpoints
 
-#### Alternativamente con **Railway** (más moderno)
+### Phase 2: Core Features (Next)
+- Complete CRUD APIs
+- Payment processing
+- Commission calculation
+- Member account view
 
-1. Sube tu código a GitHub
-2. Ve a [https://railway.app](https://railway.app)
-3. Haz clic en "New Project" → "Deploy from GitHub repo"
-4. Selecciona tu repositorio
-5. Agrega variable de entorno: `PORT=8501`
-6. Procfile:
-   ```
-   web: streamlit run app_streamlit.py --server.port=$PORT --server.address=0.0.0.0
-   ```
+### Phase 3: Automation
+- Automatic fee generation
+- Email notifications
+- Scheduler setup
 
----
+### Phase 4: Frontend
+- React application
+- Three panels (SuperAdmin, Treasurer, Member)
+- Mobile-responsive design
 
-## 📁 Estructura de Archivos
+### Phase 5: Production
+- Testing
+- Docker deployment
+- CI/CD
+- Production launch
 
-```
-/home/eesse/Documentos/CALCULO POSICIONES CUOCIENTE/
-├── app_streamlit.py          # Aplicación Streamlit
-├── requirements.txt          # Dependencias Python
-├── .streamlit/
-│   └── config.toml          # Configuración de Streamlit
-├── README.md                # Este archivo
-└── seleccionados_pro_plus.py # (Aplicación de escritorio original)
-```
+## 📞 Support
 
----
+- **Issues**: Create an issue on GitHub
+- **Email**: support@clubmanagement.com
+- **Documentation**: See docs/ folder
 
-## 📊 Uso de la Aplicación
+## 📄 License
 
-### Para cada categoría:
-
-1. **Ingresa Tiempo Testigo**: En formato `m:ss.fff` (ej: `3:45.320`) o solo segundos (ej: `225.32`)
-
-2. **Configura Corte**: Porcentaje máximo permitido. Por defecto 105% (5% más lento que el testigo)
-
-3. **Agregar Atletas**:
-   - Usa los campos de texto para ingresar nombre, club, tiempo
-   - O sube un CSV/Excel con las columnas: `Nombre, Club, Tiempo`
-
-4. **Procesar Datos**: Haz clic en "Procesar datos" para ver resultados y ranking
-
-5. **Descargar Resultados**:
-   - CSV: datos brutos
-   - Excel: con formato y estadísticas
-
-### Ranking Global:
-
-- Filtra por disciplina y sexo
-- Ajusta "Top N" para mostrar los mejores
-- Descarga el ranking en Excel
-- Los "Seleccionados" están marcados con ✓
+This project is licensed under the MIT License.
 
 ---
 
-## 📝 Formato de Entrada de Tiempo
+## 🔄 Migration from Legacy App
 
-La aplicación acepta tiempos en estos formatos:
+The original `app_streamlit.py` was a simple kayaking ranking calculator. This has been transformed into a comprehensive **multi-tenant SaaS platform** for complete sports club management.
 
-- `3:45.32` → 3 minutos, 45 segundos, 32 centisegundos
-- `225.32` → 225 segundos, 32 centisegundos
-- `3:45,32` → Con coma (también válido)
-- `3:45` → Solo minutos y segundos
+**Legacy app**: Simple athlete ranking
+**New platform**: Full club management with fees, payments, commissions, events, and communications
 
 ---
 
-## 🔄 Diferencias con la Versión de Escritorio
+**Built with ❤️ for sports clubs worldwide**
 
-| Aspecto | Escritorio | Web |
-|---------|-----------|-----|
-| Interfaz | PySide6 (Qt) | Streamlit |
-| Acceso | Solo local | Desde cualquier navegador |
-| PDF | Soportado | No (pero Excel sí) |
-| Color personalizado | Sí | Tema moderno |
-| Colaboración | No | Posible (cada usuario) |
+**Version**: 1.0.0 (MVP Phase 1 Complete)
+**Last Updated**: 2026-02-19
 
----
-
-## 🛠️ Desarrollo Futuro
-
-Mejoras sugeridas:
-
-- [ ] Dashboard con gráficos (matplotlib/plotly)
-- [ ] Exportación a PDF
-- [ ] Almacenamiento en base de datos
-- [ ] Análisis histórico de rankings
-- [ ] API REST para integración
-- [ ] Autenticación de usuarios
-
----
-
-## ❓ Preguntas Frecuentes
-
-**P: ¿Cuánto cuesta?**
-> Streamlit Cloud es **completamente gratuito**. Solo se requiere cuenta de GitHub.
-
-**P: ¿Qué tan rápido es?**
-> Muy rápido. La aplicación responde en milisegundos (depende de la velocidad de internet).
-
-**P: ¿Mis datos se guardan?**
-> Default: No. Los datos se guardan solo durante la sesión. Si quieres persistencia, necesitas una base de datos.
-
-**P: ¿Puedo agregar usuarios?**
-> Streamlit Cloud es público por defecto. Puedes añadir autenticación con bibliotecas como `streamlit-authenticator`.
-
-**P: ¿Funciona en móvil?**
-> Sí, la interfaz es responsiva.
-
----
-
-## 📞 Soporte
-
-Para problemas o preguntas:
-- Abre un issue en el repositorio GitHub
-- Consulta la [documentación oficial de Streamlit](https://docs.streamlit.io)
-
----
-
-## 📄 Licencia
-
-Uso libre y personal.
-
----
-
-**Hecho con ❤️ - Cálculo de Posiciones Canotaje**
