@@ -12,7 +12,7 @@ from app.core.config import settings
 from app.db.database import engine, Base
 
 # Import routers
-from app.api import auth, clubs
+from app.api import auth, clubs, members, payments
 
 
 @asynccontextmanager
@@ -98,11 +98,11 @@ async def root():
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
 app.include_router(clubs.router, prefix="/api/clubs", tags=["clubs"])
+app.include_router(members.router, prefix="/api/members", tags=["members"])
+app.include_router(payments.router, prefix="/api/payments", tags=["payments"])
 # Additional routers to be added:
 # app.include_router(users.router, prefix="/api/users", tags=["users"])
-# app.include_router(members.router, prefix="/api/members", tags=["members"])
 # app.include_router(fees.router, prefix="/api/fees", tags=["fees"])
-# app.include_router(payments.router, prefix="/api/payments", tags=["payments"])
 # app.include_router(events.router, prefix="/api/events", tags=["events"])
 # app.include_router(news.router, prefix="/api/news", tags=["news"])
 
