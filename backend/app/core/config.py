@@ -4,6 +4,7 @@ Uses Pydantic Settings for environment variable management
 """
 from pydantic_settings import BaseSettings
 from typing import Optional
+import sys
 
 
 class Settings(BaseSettings):
@@ -54,6 +55,31 @@ class Settings(BaseSettings):
     # Pagination
     DEFAULT_PAGE_SIZE: int = 50
     MAX_PAGE_SIZE: int = 100
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Validate security settings in production
+        if not self.DEBUG:
+            if "CHANGE-THIS" in self.SECRET_KEY or len(self.SECRET_KEY) < 32:
+                print("\n" + "="*70)
+                print("🚨 CRITICAL SECURITY ERROR 🚨")
+                print("="*70)
+                print("SECRET_KEY is using the default insecure value!")
+                print("This is NOT allowed in production (DEBUG=False).")
+                print("\nTo fix this:")
+                print("1. Generate a secure key: openssl rand -base64 32")
+                print("2. Set environment variable: SECRET_KEY=<generated-key>")
+                print("="*70 + "\n")
+                sys.exit(1)
+            
+            if "password" in self.DATABASE_URL.lower() or "user" in self.DATABASE_URL:
+                print("\n" + "="*70)
+                print("🚨 DATABASE CONFIGURATION ERROR 🚨")
+                print("="*70)
+                print("DATABASE_URL appears to use default placeholder values!")
+                print("Please set a proper DATABASE_URL environment variable.")
+                print("="*70 + "\n")
+                sys.exit(1)
     
     class Config:
         env_file = ".env"

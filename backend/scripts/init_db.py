@@ -1,6 +1,10 @@
 """
 Database initialization script
 Creates initial SuperAdmin user and sample club
+
+⚠️ FOR DEVELOPMENT/TESTING ONLY ⚠️
+Do NOT use default passwords in production!
+For production, set passwords via environment variables or admin interface.
 """
 import sys
 import os
@@ -12,6 +16,15 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from app.db.database import SessionLocal, engine, Base
 from app.models.models import User, Club, UserRole, ClubStatus
 from app.core.security import hash_password
+
+
+def get_password_from_env_or_default(env_var: str, default: str, user_type: str) -> str:
+    """Get password from environment variable or use default with warning"""
+    password = os.getenv(env_var, default)
+    if password == default:
+        print(f"  ⚠️  Using default password for {user_type}")
+        print(f"  ⚠️  Set {env_var} environment variable for production!")
+    return password
 
 
 def init_database():
@@ -33,10 +46,17 @@ def init_database():
         
         print("\nCreating SuperAdmin user...")
         
+        # Get password from environment or use default
+        admin_password = get_password_from_env_or_default(
+            'INIT_ADMIN_PASSWORD', 
+            'admin123',  # Default for development only
+            'SuperAdmin'
+        )
+        
         # Create SuperAdmin
         superadmin = User(
             email="admin@clubmanagement.com",
-            hashed_password=hash_password("admin123"),  # CHANGE IN PRODUCTION!
+            hashed_password=hash_password(admin_password),
             full_name="System Administrator",
             role=UserRole.SUPERADMIN,
             club_id=None,  # SuperAdmin is not tied to any club
@@ -49,8 +69,8 @@ def init_database():
         
         print("✓ SuperAdmin created")
         print(f"  Email: admin@clubmanagement.com")
-        print(f"  Password: admin123")
-        print("  ⚠️  CHANGE PASSWORD IN PRODUCTION!")
+        if admin_password == 'admin123':
+            print(f"  Password: {admin_password} (DEFAULT - CHANGE IN PRODUCTION!)")
         
         # Create a sample club
         print("\nCreating sample club...")
@@ -76,9 +96,15 @@ def init_database():
         # Create club admin for sample club
         print("\nCreating club admin...")
         
+        club_admin_password = get_password_from_env_or_default(
+            'INIT_CLUB_ADMIN_PASSWORD',
+            'club123',  # Default for development only
+            'Club Admin'
+        )
+        
         club_admin = User(
             email="admin@demosportsclub.com",
-            hashed_password=hash_password("club123"),  # CHANGE IN PRODUCTION!
+            hashed_password=hash_password(club_admin_password),
             full_name="Club Administrator",
             role=UserRole.CLUB_ADMIN,
             club_id=sample_club.id,
@@ -91,15 +117,21 @@ def init_database():
         
         print("✓ Club admin created")
         print(f"  Email: admin@demosportsclub.com")
-        print(f"  Password: club123")
-        print("  ⚠️  CHANGE PASSWORD IN PRODUCTION!")
+        if club_admin_password == 'club123':
+            print(f"  Password: {club_admin_password} (DEFAULT - CHANGE IN PRODUCTION!)")
         
         # Create treasurer for sample club
         print("\nCreating treasurer...")
         
+        treasurer_password = get_password_from_env_or_default(
+            'INIT_TREASURER_PASSWORD',
+            'treasurer123',  # Default for development only
+            'Treasurer'
+        )
+        
         treasurer = User(
             email="treasurer@demosportsclub.com",
-            hashed_password=hash_password("treasurer123"),
+            hashed_password=hash_password(treasurer_password),
             full_name="Club Treasurer",
             role=UserRole.TREASURER,
             club_id=sample_club.id,
@@ -112,16 +144,35 @@ def init_database():
         
         print("✓ Treasurer created")
         print(f"  Email: treasurer@demosportsclub.com")
-        print(f"  Password: treasurer123")
+        if treasurer_password == 'treasurer123':
+            print(f"  Password: {treasurer_password} (DEFAULT)")
         
         print("\n" + "="*60)
         print("✅ Database initialization complete!")
         print("="*60)
-        print("\nYou can now login with:")
-        print("1. SuperAdmin: admin@clubmanagement.com / admin123")
-        print("2. Club Admin: admin@demosportsclub.com / club123")
-        print("3. Treasurer: treasurer@demosportsclub.com / treasurer123")
-        print("\n⚠️  Remember to change these passwords in production!")
+        print("\n📝 Login Credentials (for development/testing):")
+        print("\n1. SuperAdmin:")
+        print("   Email: admin@clubmanagement.com")
+        if admin_password == 'admin123':
+            print(f"   Password: {admin_password} (DEFAULT)")
+        print("\n2. Club Admin:")
+        print("   Email: admin@demosportsclub.com")
+        if club_admin_password == 'club123':
+            print(f"   Password: {club_admin_password} (DEFAULT)")
+        print("\n3. Treasurer:")
+        print("   Email: treasurer@demosportsclub.com")
+        if treasurer_password == 'treasurer123':
+            print(f"   Password: {treasurer_password} (DEFAULT)")
+        
+        print("\n" + "="*60)
+        print("⚠️  FOR PRODUCTION DEPLOYMENT:")
+        print("="*60)
+        print("Set environment variables for secure passwords:")
+        print("  - INIT_ADMIN_PASSWORD")
+        print("  - INIT_CLUB_ADMIN_PASSWORD")
+        print("  - INIT_TREASURER_PASSWORD")
+        print("Or change passwords immediately after first login!")
+        print("="*60)
         
     except Exception as e:
         print(f"\n❌ Error during initialization: {e}")
