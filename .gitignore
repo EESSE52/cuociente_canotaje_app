@@ -34,3 +34,23 @@ Thumbs.db
 *.csv
 *.xlsx
 *.tmp
+
+# Backend specific
+backend/uploads/
+backend/alembic/versions/*.pyc
+backend/.pytest_cache/
+backend/htmlcov/
+backend/.coverage
+
+# Database
+*.sql
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Docker
+docker-compose.override.yml
+
