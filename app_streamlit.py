@@ -466,7 +466,8 @@ for idx, cat_key in enumerate(cat_keys):
             )
             if st.button("🔄 Reset testigo", key=f"reset_testigo_{cat_key}", help="Eliminar tiempo testigo para ingresar uno nuevo"):
                 st.session_state.categories[cat_key]["testigo"] = ""
-                st.session_state[f"testigo_{cat_key}"] = ""
+                if f"testigo_{cat_key}" in st.session_state:
+                    del st.session_state[f"testigo_{cat_key}"]
                 guardar_testigos()
                 st.rerun()
         
