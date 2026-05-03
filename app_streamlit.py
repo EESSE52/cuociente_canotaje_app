@@ -2,6 +2,10 @@ import streamlit as st
 import pandas as pd
 import io
 import re
+import json
+import os
+import gspread
+from google.oauth2.service_account import Credentials
 from datetime import datetime
 from typing import List, Tuple, Dict, Optional
 from dataclasses import dataclass, asdict
@@ -16,6 +20,52 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# ========================
+# AUTENTICACIÓN
+# ========================
+
+CONTRASEÑA_CORRECTA = "canotaje2026"  # ⚠️ CAMBIAR ESTO POR TU CONTRASEÑA
+
+def verificar_autenticacion():
+    """Verifica si el usuario está autenticado"""
+    if "autenticado" not in st.session_state:
+        st.session_state.autenticado = False
+    return st.session_state.autenticado
+
+def mostrar_login():
+    """Muestra la página de login"""
+    st.set_page_config(page_title="Login - Canotaje", page_icon="🔐")
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.markdown("<br><br><br>", unsafe_allow_html=True)
+        st.markdown("# 🚣 Cálculo de Posiciones Canotaje")
+        st.markdown("## Acceso Restringido")
+        
+        st.markdown("---")
+        
+        contraseña = st.text_input(
+            "Ingresa la contraseña para acceder:",
+            type="password",
+            placeholder="Contraseña"
+        )
+        
+        if st.button("🔓 Acceder", use_container_width=True):
+            if contraseña == CONTRASEÑA_CORRECTA:
+                st.session_state.autenticado = True
+                st.success("✓ ¡Acceso concedido!")
+                st.rerun()
+            else:
+                st.error("❌ Contraseña incorrecta")
+        
+        st.markdown("---")
+        st.info("💡 Contacta al administrador si olvidaste la contraseña")
+
+if not verificar_autenticacion():
+    mostrar_login()
+    st.stop()
 
 # CSS personalizado para mejorar la apariencia
 st.markdown("""
@@ -88,6 +138,72 @@ def format_seconds_to_time(total_seconds: float) -> str:
     return f"{sign}{minutes}:{sec_int:02d}.{millis:03d}"
 
 # ========================
+# PERSISTENCIA DE TESTIGOS
+# ========================
+
+TESTIGOS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "testigos.json")
+
+_GSHEET_SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+
+def _get_gsheet_ws():
+    """Retorna el worksheet de Google Sheets, o None si no está configurado."""
+    try:
+        creds_info = dict(st.secrets["gcp_service_account"])
+        creds = Credentials.from_service_account_info(creds_info, scopes=_GSHEET_SCOPES)
+        gc = gspread.authorize(creds)
+        sheet_url = st.secrets["gsheet"]["url"]
+        sh = gc.open_by_url(sheet_url)
+        return sh.sheet1
+    except Exception:
+        return None
+
+def cargar_testigos() -> dict:
+    """Carga los tiempos testigo desde Google Sheets (si está configurado) o desde archivo local."""
+    ws = _get_gsheet_ws()
+    if ws is not None:
+        try:
+            records = ws.get_all_records()
+            return {row["categoria"]: row["testigo"] for row in records if row.get("categoria")}
+        except Exception:
+            pass
+    # Fallback: archivo local
+    if os.path.exists(TESTIGOS_FILE):
+        try:
+            with open(TESTIGOS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def guardar_testigos():
+    """Guarda los tiempos testigo en Google Sheets (si está configurado) y en archivo local."""
+    testigos = {
+        cat_key: cat["testigo"]
+        for cat_key, cat in st.session_state.categories.items()
+    }
+    ws = _get_gsheet_ws()
+    if ws is not None:
+        try:
+            ws.clear()
+            ws.append_row(["categoria", "testigo"])
+            for k, v in testigos.items():
+                ws.append_row([k, v])
+        except Exception:
+            pass
+    # Siempre guardar localmente también
+    try:
+        with open(TESTIGOS_FILE, "w", encoding="utf-8") as f:
+            json.dump(testigos, f, ensure_ascii=False)
+    except Exception:
+        pass
+
+def _on_testigo_change(cat_key: str):
+    """Callback al cambiar un tiempo testigo – persiste en disco y en Sheets."""
+    val = st.session_state.get(f"testigo_{cat_key}", "")
+    st.session_state.categories[cat_key]["testigo"] = val
+    guardar_testigos()
+
+# ========================
 # DATACLASS
 # ========================
 
@@ -149,6 +265,11 @@ if "categories" not in st.session_state:
             "data": []
         }
     }
+    # Cargar testigos persistidos
+    testigos_guardados = cargar_testigos()
+    for _ck, _tv in testigos_guardados.items():
+        if _ck in st.session_state.categories:
+            st.session_state.categories[_ck]["testigo"] = _tv
 
 # ========================
 # FUNCIONES PRINCIPALES
@@ -339,8 +460,15 @@ for idx, cat_key in enumerate(cat_keys):
                 "Tiempo testigo",
                 value=cat["testigo"],
                 placeholder="1:45.32 o 105.32",
-                key=f"testigo_{cat_key}"
+                key=f"testigo_{cat_key}",
+                on_change=_on_testigo_change,
+                args=(cat_key,)
             )
+            if st.button("🔄 Reset testigo", key=f"reset_testigo_{cat_key}", help="Eliminar tiempo testigo para ingresar uno nuevo"):
+                st.session_state.categories[cat_key]["testigo"] = ""
+                st.session_state[f"testigo_{cat_key}"] = ""
+                guardar_testigos()
+                st.rerun()
         
         with col2:
             cat["cutoff"] = st.number_input(
@@ -388,37 +516,28 @@ for idx, cat_key in enumerate(cat_keys):
         if cat["data"]:
             st.markdown("**Atletas ingresados:**")
             
-            for i, row in enumerate(cat["data"]):
-                col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
+            # Crear tabla con DataFrame editable
+            df_temp = pd.DataFrame(cat["data"])
+            
+            if not df_temp.empty:
+                edited_df = st.data_editor(
+                    df_temp,
+                    use_container_width=True,
+                    hide_index=True,
+                    key=f"editor_{cat_key}"
+                )
                 
-                with col1:
-                    row["name"] = st.text_input(
-                        "Nombre",
-                        value=row["name"],
-                        key=f"name_{cat_key}_{i}",
-                        label_visibility="collapsed"
-                    )
-                
-                with col2:
-                    row["club"] = st.text_input(
-                        "Club",
-                        value=row["club"],
-                        key=f"club_{cat_key}_{i}",
-                        label_visibility="collapsed"
-                    )
-                
-                with col3:
-                    row["time_text"] = st.text_input(
-                        "Tiempo",
-                        value=row["time_text"],
-                        key=f"time_{cat_key}_{i}",
-                        label_visibility="collapsed"
-                    )
-                
-                with col4:
-                    if st.button("🗑️", key=f"del_{cat_key}_{i}", help="Eliminar"):
-                        cat["data"].pop(i)
-                        st.rerun()
+                # Actualizar datos desde el editor
+                for i, row in edited_df.iterrows():
+                    if i < len(cat["data"]):
+                        cat["data"][i]["name"] = row["name"]
+                        cat["data"][i]["club"] = row["club"]
+                        cat["data"][i]["time_text"] = row["time_text"]
+            
+            # Botón para eliminar todas las filas
+            if st.button("🗑️ Limpiar tabla", key=f"clear_{cat_key}"):
+                cat["data"] = []
+                st.rerun()
         
         st.divider()
         
@@ -594,8 +713,20 @@ with tabs[4]:
 # ========================
 
 st.divider()
-st.markdown("""
-<div style="text-align: center; color: #666; font-size: 0.9em;">
-    <p>Cálculo de Posiciones Canotaje | Selecciona atletas automáticamente según el corte de porcentaje</p>
-</div>
-""", unsafe_allow_html=True)
+
+col1, col2, col3 = st.columns([1, 1, 1])
+
+with col1:
+    st.markdown("""
+    <div style="text-align: center; color: #666; font-size: 0.9em;">
+        <p>Cálculo de Posiciones Canotaje</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    st.markdown("")
+
+with col3:
+    if st.button("🔒 Cerrar Sesión", key="logout"):
+        st.session_state.autenticado = False
+        st.rerun()
